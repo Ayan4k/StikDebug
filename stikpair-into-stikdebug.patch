@@ -1187,12 +1187,12 @@ index 0000000..8215005
 +                        .foregroundStyle(.secondary)
 +                }
 +            }
-+            Section("On the device being paired") {
++            Section {
 +                guideStep(1, "Open the **Settings** app")
 +                guideStep(2, "Go to **Privacy & Security**")
 +                guideStep(3, "Tap **Developer Mode**")
 +                guideStep(4, "Scroll down and tap **Pair with \(PairingController.hostName)**")
-+            } footer: {
++            } header: { Text("On the device being paired") } footer: {
 +                Text("If **Pair with \(PairingController.hostName)** doesn't show up, cancel and try again.")
 +            }
 +            Section {
