@@ -25,7 +25,17 @@ jobs:
         uses: actions/checkout@v6
 
       - name: Apply StikPair patch
-        run: git apply stikpair-into-stikdebug.patch
+        run: |
+          set -e
+          # Skip if the patch is already applied in the tree
+          if git apply --reverse --check stikpair-into-stikdebug.patch 2>/dev/null; then
+            echo "Patch already applied, skipping."
+          else
+            echo "== Checking patch =="
+            git apply --check --verbose stikpair-into-stikdebug.patch
+            git apply --whitespace=fix --verbose stikpair-into-stikdebug.patch
+          fi
+          git status --short
 
       - name: 2. Configure Xcode Environment
         uses: maxim-lobanov/setup-xcode@v1
@@ -34,6 +44,8 @@ jobs:
 
       - name: 3. Compile Project Archive
         run: |
+          set -o pipefail
+          mkdir -p build
           xcodebuild clean archive \
             -project StikDebug.xcodeproj \
             -scheme "StikDebug" \
@@ -41,12 +53,28 @@ jobs:
             -archivePath build/StikDebug.xcarchive \
             -sdk iphoneos \
             -destination 'generic/platform=iOS' \
+            -skipPackagePluginValidation \
+            -skipMacroValidation \
             ONLY_ACTIVE_ARCH=NO \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
             CODE_SIGNING_ALLOWED=NO \
             SWIFT_OPTIMIZATION_LEVEL="-Onone" \
-            IPHONEOS_DEPLOYMENT_TARGET=17.4
+            IPHONEOS_DEPLOYMENT_TARGET=17.4 2>&1 | tee build/xcodebuild.log
+
+      - name: Show compile errors
+        if: failure()
+        run: |
+          echo "===== ERRORS ====="
+          grep -E "error:|fatal error:|Undefined symbol|linker command failed" build/xcodebuild.log | sort -u | head -50 || true
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: xcodebuild-log
+          path: build/xcodebuild.log
+          retention-days: 7
 
       - name: 4. Package .app into .ipa
         run: |
