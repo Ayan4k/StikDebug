@@ -1,0 +1,32 @@
+name: Build IPA
+on: [workflow_dispatch]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Apply StikPair patch
+        run: git apply stikpair-into-stikdebug.patch
+
+      - name: Build (unsigned)
+        run: |
+          xcodebuild -project StikDebug.xcodeproj \
+            -scheme StikDebug \
+            -configuration Release \
+            -sdk iphoneos \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" build
+
+      - name: Package IPA
+        run: |
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/StikDebug.app Payload/
+          zip -r StikDebug.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: StikDebug-ipa
+          path: StikDebug.ipa
