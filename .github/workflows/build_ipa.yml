@@ -24,6 +24,9 @@ jobs:
       - name: 1. Fetch Source Code
         uses: actions/checkout@v6
 
+      - name: Apply StikPair patch
+        run: git apply stikpair-into-stikdebug.patch
+
       - name: 2. Configure Xcode Environment
         uses: maxim-lobanov/setup-xcode@v1
         with:
